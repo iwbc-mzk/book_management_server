@@ -1,18 +1,10 @@
 from collections import OrderedDict
 from rest_framework import serializers
 from .models import Book, Author, Series, Publisher, Label, Medium
-import json
-
-
-class MyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
-    def to_representation(self, value):
-        if self.pk_field is not None:
-            return self.pk_field.to_representation(value.pk)
-
-        return str(self.get_queryset().get(pk=value.pk))
 
 
 class AuthorSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='author-detail', read_only=True)
     created_by = serializers.ReadOnlyField(source='created_by.username')
     updated_by = serializers.ReadOnlyField(source='updated_by.username')
 
@@ -22,10 +14,19 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 
 class SeriesSerializer(serializers.ModelSerializer):
-    author = MyPrimaryKeyRelatedField(queryset=Author.objects.all())
-
+    url = serializers.HyperlinkedIdentityField(view_name='series-detail', read_only=True)
+    author = AuthorSerializer(read_only=True)
+    author_id = serializers.PrimaryKeyRelatedField(queryset=Author.objects.all(),
+                                                   write_only=True,
+                                                   allow_null=True)
     created_by = serializers.ReadOnlyField(source='created_by.username')
     updated_by = serializers.ReadOnlyField(source='updated_by.username')
+
+    def create(self, validated_data):
+        validated_data['author'] = validated_data.get('author_id', None)
+        del validated_data['author_id']
+
+        return Series.objects.create(**validated_data)
 
     class Meta:
         model = Series
@@ -33,6 +34,7 @@ class SeriesSerializer(serializers.ModelSerializer):
 
 
 class PublisherSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='publisher-detail', read_only=True)
     created_by = serializers.ReadOnlyField(source='created_by.username')
     updated_by = serializers.ReadOnlyField(source='updated_by.username')
 
@@ -42,10 +44,20 @@ class PublisherSerializer(serializers.ModelSerializer):
 
 
 class LabelSerializer(serializers.ModelSerializer):
-    publisher = MyPrimaryKeyRelatedField(queryset=Publisher.objects.all())
+    url = serializers.HyperlinkedIdentityField(view_name='label-detail', read_only=True)
+    publisher = PublisherSerializer(read_only=True)
+    publisher_id = serializers.PrimaryKeyRelatedField(queryset=Publisher.objects.all(),
+                                                      write_only=True,
+                                                      allow_null=True)
 
     created_by = serializers.ReadOnlyField(source='created_by.username')
     updated_by = serializers.ReadOnlyField(source='updated_by.username')
+
+    def create(self, validated_data):
+        validated_data['publisher'] = validated_data.get('publisher_id', None)
+        del validated_data['publisher_id']
+
+        return Label.objects.create(**validated_data)
 
     class Meta:
         model = Label
@@ -53,6 +65,7 @@ class LabelSerializer(serializers.ModelSerializer):
 
 
 class MediumSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='medium-detail', read_only=True)
     created_by = serializers.ReadOnlyField(source='created_by.username')
     updated_by = serializers.ReadOnlyField(source='updated_by.username')
 
@@ -62,22 +75,47 @@ class MediumSerializer(serializers.ModelSerializer):
 
 
 class BookSerializer(serializers.ModelSerializer):
-    author = MyPrimaryKeyRelatedField(queryset=Author.objects.all())
-    series = MyPrimaryKeyRelatedField(queryset=Series.objects.all())
-    publisher = MyPrimaryKeyRelatedField(queryset=Publisher.objects.all())
-    label = MyPrimaryKeyRelatedField(queryset=Label.objects.all())
-    medium = MyPrimaryKeyRelatedField(queryset=Medium.objects.all())
-
-    author_url = serializers.HyperlinkedRelatedField(source='author', view_name='author-detail', read_only=True)
-    series_url = serializers.HyperlinkedRelatedField(source='series', view_name='series-detail', read_only=True)
-    publisher_url = serializers.HyperlinkedRelatedField(source='publisher',
-                                                        view_name='publisher-detail',
-                                                        read_only=True)
-    label_url = serializers.HyperlinkedRelatedField(source='label', view_name='label-detail', read_only=True)
-    medium_url = serializers.HyperlinkedRelatedField(source='medium', view_name='medium-detail', read_only=True)
-
+    """参考: https://sakataharumi.hatenablog.jp/entry/2018/10/20/010806"""
+    author = AuthorSerializer(read_only=True)
+    author_id = serializers.PrimaryKeyRelatedField(queryset=Author.objects.all(),
+                                                   write_only=True,
+                                                   allow_null=True)
+    series = SeriesSerializer(read_only=True)
+    series_id = serializers.PrimaryKeyRelatedField(queryset=Series.objects.all(),
+                                                   write_only=True,
+                                                   allow_null=True)
+    publisher = PublisherSerializer(read_only=True)
+    publisher_id = serializers.PrimaryKeyRelatedField(queryset=Publisher.objects.all(),
+                                                      write_only=True,
+                                                      allow_null=True)
+    label = LabelSerializer(read_only=True)
+    label_id = serializers.PrimaryKeyRelatedField(queryset=Label.objects.all(),
+                                                  write_only=True,
+                                                  allow_null=True)
+    medium = MediumSerializer(read_only=True)
+    medium_id = serializers.PrimaryKeyRelatedField(queryset=Medium.objects.all(),
+                                                   write_only=True,
+                                                   allow_null=True)
     created_by = serializers.ReadOnlyField(source='created_by.username')
     updated_by = serializers.ReadOnlyField(source='updated_by.username')
+
+    def create(self, validated_data):
+        validated_data['author'] = validated_data.get('author_id', None)
+        del validated_data['author_id']
+
+        validated_data['series'] = validated_data.get('series_id', None)
+        del validated_data['series_id']
+
+        validated_data['publisher'] = validated_data.get('publisher_id', None)
+        del validated_data['publisher_id']
+
+        validated_data['label'] = validated_data.get('label_id', None)
+        del validated_data['label_id']
+
+        validated_data['medium'] = validated_data.get('medium_id', None)
+        del validated_data['medium_id']
+
+        return Book.objects.create(**validated_data)
 
     class Meta:
         model = Book
