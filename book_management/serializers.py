@@ -28,6 +28,14 @@ class SeriesSerializer(serializers.ModelSerializer):
 
         return Series.objects.create(**validated_data)
 
+    def update(self, instance, validated_data):
+        instance.series_name = validated_data['series_name']
+        instance.author = validated_data['author_id']
+        instance.del_flg = validated_data['del_flg']
+        instance.save()
+
+        return instance
+
     class Meta:
         model = Series
         fields = '__all__'
@@ -59,6 +67,14 @@ class LabelSerializer(serializers.ModelSerializer):
 
         return Label.objects.create(**validated_data)
 
+    def update(self, instance, validated_data):
+        instance.label_name = validated_data['label_name']
+        instance.publisher = validated_data['publisher_id']
+        instance.del_flg = validated_data['del_flg']
+        instance.save()
+
+        return instance
+
     class Meta:
         model = Label
         fields = '__all__'
@@ -76,6 +92,7 @@ class MediumSerializer(serializers.ModelSerializer):
 
 class BookSerializer(serializers.ModelSerializer):
     """参考: https://sakataharumi.hatenablog.jp/entry/2018/10/20/010806"""
+    url = serializers.HyperlinkedIdentityField(view_name='book-detail', read_only=True)
     author = AuthorSerializer(read_only=True)
     author_id = serializers.PrimaryKeyRelatedField(queryset=Author.objects.all(),
                                                    write_only=True,
@@ -116,6 +133,19 @@ class BookSerializer(serializers.ModelSerializer):
         del validated_data['medium_id']
 
         return Book.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.title = validated_data['title']
+        instance.author = validated_data['author_id']
+        instance.series = validated_data['series_id']
+        instance.publisher = validated_data['publisher_id']
+        instance.label = validated_data['label_id']
+        instance.medium = validated_data['medium_id']
+        instance.already_read = validated_data['already_read']
+        instance.del_flg = validated_data['del_flg']
+        instance.save()
+
+        return instance
 
     class Meta:
         model = Book
