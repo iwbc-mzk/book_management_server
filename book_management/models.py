@@ -46,8 +46,13 @@ class Book(models.Model):
 
 
 class Author(models.Model):
-    author_name = models.CharField(max_length=1000)
-    how_to_read = models.CharField(max_length=1000)
+    family_name = models.CharField(max_length=1000,
+                                   null=True,
+                                   blank=True)
+    given_name = models.CharField(max_length=1000,
+                                  null=True,
+                                  blank=True)
+    full_name = models.CharField(max_length=2000)
     created_by = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=100)
@@ -55,7 +60,11 @@ class Author(models.Model):
     del_flg = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.author_name
+        if self.full_name:
+            name = self.full_name
+        else:
+            name = f'{self.family_name} {self.given_name}'
+        return name
 
 
 class Series(models.Model):
@@ -109,3 +118,6 @@ class Medium(models.Model):
     updated_by = models.CharField(max_length=100)
     updated_at = models.DateTimeField(auto_now=True)
     del_flg = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.medium_name
